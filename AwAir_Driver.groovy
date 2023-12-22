@@ -4,33 +4,36 @@
 */
 
 metadata {
-    definition(name: "AwAir", namespace: "awair", author: "Digital_BG", importUrl: "https://raw.githubusercontent.com/DigitalBodyGuard/Hubitat-AwAir/master/AwAir_Driver.groovy") 
-    {
-        capability "Sensor"
-        capability "Refresh"
-        capability "Polling"
-        capability "TemperatureMeasurement"
-        capability "CarbonDioxideMeasurement"
-        capability "RelativeHumidityMeasurement"
+    definition(name: "AwAir", namespace: "awair", author: "Digital_BG", importUrl: "https://raw.githubusercontent.com/DigitalBodyGuard/Hubitat-AwAir/master/AwAir_Driver.groovy")
+            {
+                capability "Sensor"
+                capability "Refresh"
+                capability "Polling"
+                capability "TemperatureMeasurement"
+                capability "CarbonDioxideMeasurement"
+                capability "RelativeHumidityMeasurement"
 
-        attribute "pm25", "number"
-        attribute "temperature", "number"
-        attribute "voc", "number"
-        attribute "humidity", "string"
-        attribute "airQuality", "number"	
-        attribute "carbonDioxide", "number" 
+                attribute "pm25", "number"
+                attribute "temperature", "number"
+                attribute "voc", "number"
+                attribute "humidity", "number"
+                attribute "airQuality", "number"
+                attribute "carbonDioxide", "number"
+                attribute "pm10", "number"
+                attribute "dew_point", "number"
 
-        attribute "alert_aiq", "ENUM", ["bad","good"]
-        attribute "alert_pm25", "ENUM", ["bad","good"]
-        attribute "alert_co2", "ENUM", ["bad", "good"]
-        attribute "alert_voc", "ENUM", ["bad", "good"]
-        //      attribute "alert_humidity", "ENUM", ["false", "good"]
-        //      attribute "alert_temperature", "ENUM", ["false", "good"]
-    }
+                attribute "alert_aiq", "ENUM", ["bad", "good"]
+                attribute "alert_pm25", "ENUM", ["bad", "good"]
+                attribute "alert_co2", "ENUM", ["bad", "good"]
+                attribute "alert_voc", "ENUM", ["bad", "good"]
+                attribute "alert_com", "ENUM", ["poor", "fair", "good"]
+                // attribute "alert_humidity", "ENUM", ["false", "good"]
+                // attribute "alert_temperature", "ENUM", ["false", "good"]
+            }
 
     preferences {
-        input("ip", "text", title: "IP Address", description: "ip of AwAir", required: true, defaultValue: "http://192.168.1.3" )
-        input("urlPath", "text", title: "Path Address", description: "URL path of AwAir", required: true, defaultValue: "/air-data/latest" )
+        input("ip", "text", title: "IP Address", description: "ip of AwAir", required: true, defaultValue: "http://192.168.1.3")
+        input("urlPath", "text", title: "Path Address", description: "URL path of AwAir", required: true, defaultValue: "/air-data/latest")
 
         input name: "pollingInterval", type: "number", title: "Time (seconds) between status checks", defaultValue: 300
 
@@ -50,6 +53,9 @@ metadata {
         input name: "aiqLevelBad", type: "number", title: "Alert Level low airQuality", defaultValue: 60
         input name: "aiqLevelGood", type: "number", title: "Reset Alert Level high airQuality", defaultValue: 70
 
+        input name: "enableAlerts_combined", type: "bool", title: "Enable Alerts_combined", defaultValue: true
+
+
         /*        input name: "enableAlerts_humidity", type: "bool", title: "Enable Alerts_humidity", defaultValue: true
 input name: "humidityLevelBad", type: "number", title: "Alert Level humidity", defaultValue: 70
 input name: "humidityLevelGood", type: "number", title: "Reset Alert Level humidity", defaultValue: 50
@@ -58,8 +64,8 @@ input name: "enableAlerts_temperature", type: "bool", title: "Enable Alerts_temp
 input name: "temperatureLevelBad", type: "number", title: "Alert Level temperature", defaultValue: 90
 input name: "temperatureLevelGood", type: "number", title: "Reset Alert Level temperature", defaultValue: 70
 */
-        input name: "logEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: false        
-        input name: "logDebug", type: "bool", title: "Enable debug logging", defaultValue: false  
+        input name: "logEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: false
+        input name: "logDebug", type: "bool", title: "Enable debug logging", defaultValue: false
 
         //  input "tempOffset", "number", title: "Temperature Offset", description: "Adjust temperature by this many degrees", range: "*..*", displayDuringSetup: false, defaultValue: 0
         //	input "tempUnitConversion", "enum", title: "Temperature Unit Conversion - select F to C, C to F, or no conversion", description: "", defaultValue: "1", required: true, multiple: false, options:[["1":"none"], ["2":"Fahrenheit to Celsius"], ["3":"Celsius to Fahrenheit"]], displayDuringSetup: false
@@ -68,7 +74,7 @@ input name: "temperatureLevelGood", type: "number", title: "Reset Alert Level te
 
 void installed() {
     if (logDebug) log.debug "installed()..."
-    refresh()   
+    refresh()
     runIn(2, poll)
 }
 
@@ -79,17 +85,18 @@ def logsOff() {
 
 def refresh() {
     if (logDebug) log.debug "refreshing"
-    fireUpdate("voc",-1,"ppb","voc is ${-1} ppb")
-    fireUpdate("pm25",-1,"ug/m3","pm25 is ${-1} ug/m3")
-    fireUpdate("airQuality",-1,"","airQuality is ${-1}")
-    fireUpdate("temperature",-1,"°${location.temperatureScale}","Temperature is ${-1}°${location.temperatureScale}")
-    fireUpdate("carbonDioxide",-1,"ppm","carbonDioxide is ${-1} ppm")
-    fireUpdate("humidity",-1,"%","humidity is ${-1}")
+    //fireUpdate("voc",-1,"ppb","voc is ${-1} ppb")
+    //fireUpdate("pm25",-1,"ug/m3","pm25 is ${-1} ug/m3")
+    //fireUpdate("airQuality",-1,"","airQuality is ${-1}")
+    //fireUpdate("temperature",-1,"°${location.temperatureScale}","Temperature is ${-1}°${location.temperatureScale}")
+    //fireUpdate("carbonDioxide",-1,"ppm","carbonDioxide is ${-1} ppm")
+    //fireUpdate("humidity",-1,"%","humidity is ${-1}")
 
-    fireUpdate_small("alert_aiq","good")
-    fireUpdate_small("alert_voc","good")
-    fireUpdate_small("alert_co2","good")
-    fireUpdate_small("alert_pm25","good")
+    //fireUpdate_small("alert_aiq","good")
+    //fireUpdate_small("alert_voc","good")
+    //fireUpdate_small("alert_co2","good")
+    //fireUpdate_small("alert_pm25","good")
+    //fireUpdate_small("alert_com","fair")
     //  fireUpdate_small("alert_humidity","bad")
     //  fireUpdate_small("alert_temperature","bad")
 
@@ -98,15 +105,15 @@ def refresh() {
 
 def poll() {
     try {
-        def Params = [ 
-            uri: ip,
-            path: urlPath,
-            contentType: "application/json" ]
-        asynchttpGet( 'ReceiveData', Params)
+        def Params = [
+                uri        : ip,
+                path       : urlPath,
+                contentType: "application/json"]
+        asynchttpGet('ReceiveData', Params)
         if (logDebug) log.debug "poll state"
-    } catch(Exception e) {
-        if (logDebug) 
-        log.error "error occured calling httpget ${e}"
+    } catch (Exception e) {
+        if (logDebug)
+            log.error "error occured calling httpget ${e}"
         else
             log.error "error occured calling httpget"
     }
@@ -115,67 +122,64 @@ def poll() {
 }
 
 def ReceiveData(response, data) {
-    try{
+    try {
         if (response.getStatus() == 200 || response.getStatus() == 207) {
-            if (logDebug) log.debug "start parsing"      
+            if (logDebug) log.debug "start parsing"
 
-            Json = parseJson( response.data )
+            Json = parseJson(response.data)
 
-            fireUpdate("voc",Json.voc,"ppb","voc is ${Json.voc} ppb")
-            fireUpdate("pm25",Json.pm25,"ug/m3","pm25 is ${Json.pm25} ug/m3")
-            fireUpdate("airQuality",Json.score,"","airQuality is ${Json.score}")
+            fireUpdate("voc", Json.voc, "ppb", "voc is ${Json.voc} ppb")
+            fireUpdate("pm25", Json.pm25, "ug/m3", "pm25 is ${Json.pm25} ug/m3")
+            fireUpdate("airQuality", Json.score, "", "airQuality is ${Json.score}")
 
-            temperature=convertTemperatureIfNeeded(Json.temp,"c",1)
-            fireUpdate("temperature",temperature,"°${location.temperatureScale}","Temperature is ${temperature}°${location.temperatureScale}")
-            fireUpdate("carbonDioxide",Json.co2,"ppm","carbonDioxide is ${Json.co2} ppm")
-            fireUpdate("humidity",(int)Json.humid,"%","humidity is ${Json.humid}")
+            temperature = convertTemperatureIfNeeded(Json.temp, "c", 1)
+            fireUpdate("temperature", temperature, "°${location.temperatureScale}", "Temperature is ${temperature}°${location.temperatureScale}")
+            fireUpdate("carbonDioxide", Json.co2, "ppm", "carbonDioxide is ${Json.co2} ppm")
+            fireUpdate("humidity", (int) Json.humid, "%", "humidity is ${Json.humid}")
+            fireUpdate("pm10", Json.pm10_est, "ug/m3", "pm10 is ${Json.pm10_est} ug/m3")
+            dewpoint = convertTemperatureIfNeeded(Json.dew_point, "c", 1)
+            fireUpdate("dew_point", dewpoint, "°${location.temperatureScale}", "Dew Point is ${dewpoint}°${location.temperatureScale}")
 
-            if(enableAlerts_aiq)
-            {
-                if(getAttribute("alert_aiq")=="good")
-                {
-                    if(Json.score < aiqLevelBad)
-                    fireUpdate_small("alert_aiq","bad")
+            if (enableAlerts_combined) {
+                if (Json.score > 79 && Json.co2 < 600 && Json.pm25 < 15 && Json.pm10_est < 55 && Json.voc < 333) {
+                    fireUpdate_small("alert_com", "good")
+                } else if (Json.score > 59 && Json.co2 < 2500 && Json.pm25 < 75 && Json.pm10_est < 155 && Json.voc < 8332) {
+                    fireUpdate_small("alert_com", "fair")
+                } else {
+                    fireUpdate_small("alert_com", "poor")
                 }
-                else
-                    if(Json.score > aiqLevelGood)
-                    fireUpdate_small("alert_aiq","good")
             }
 
-            if(enableAlerts_pm25)
-            {
-                if(getAttribute("alert_pm25")=="good")
-                {
-                    if(Json.pm25 > pm2_5LevelBad)
-                    fireUpdate_small("alert_pm25","bad")
-                }
-                else
-                    if(Json.pm25 < pm2_5LevelGood)
-                    fireUpdate_small("alert_pm25","good")
+            if (enableAlerts_aiq) {
+                if (getAttribute("alert_aiq") == "good") {
+                    if (Json.score < aiqLevelBad)
+                        fireUpdate_small("alert_aiq", "bad")
+                } else if (Json.score > aiqLevelGood)
+                    fireUpdate_small("alert_aiq", "good")
             }
 
-            if(enableAlerts_co2)
-            {
-                if(getAttribute("alert_co2")=="good")
-                {    
-                    if(Json.co2 > co2LevelBad)
-                    fireUpdate_small("alert_co2","bad")
-                }
-                else
-                    if(Json.co2 < co2LevelGood)
-                    fireUpdate_small("alert_co2","good")
+            if (enableAlerts_pm25) {
+                if (getAttribute("alert_pm25") == "good") {
+                    if (Json.pm25 > pm2_5LevelBad)
+                        fireUpdate_small("alert_pm25", "bad")
+                } else if (Json.pm25 < pm2_5LevelGood)
+                    fireUpdate_small("alert_pm25", "good")
             }
 
-            if(enableAlerts_voc)
-            {
-                if(getAttribute("alert_voc")=="good")
-                {  
-                    if(Json.voc > vocLevelBad)
-                    fireUpdate_small("alert_voc","bad")
-                }
-                else
-                    if(Json.voc < vocLevelGood)
-                    fireUpdate_small("alert_voc","good")
+            if (enableAlerts_co2) {
+                if (getAttribute("alert_co2") == "good") {
+                    if (Json.co2 > co2LevelBad)
+                        fireUpdate_small("alert_co2", "bad")
+                } else if (Json.co2 < co2LevelGood)
+                    fireUpdate_small("alert_co2", "good")
+            }
+
+            if (enableAlerts_voc) {
+                if (getAttribute("alert_voc") == "good") {
+                    if (Json.voc > vocLevelBad)
+                        fireUpdate_small("alert_voc", "bad")
+                } else if (Json.voc < vocLevelGood)
+                    fireUpdate_small("alert_voc", "good")
             }
             /*      if(enableAlerts_temperature)
 {
@@ -202,44 +206,40 @@ fireUpdate_small("alert_humidity","good")
         } else {
             log.error "parsing error"
         }
-    } catch(Exception e) {
+    } catch (Exception e) {
         log.error "error #5415 : ${e}"
     }
 }
 
-void fireUpdate(name,value,unit,description)
-{
+void fireUpdate(name, value, unit, description) {
     result = [
-        name: name,
-        value: value,
-        unit: unit,
-        descriptionText: description
-        //	translatable:true
+            name           : name,
+            value          : value,
+            unit           : unit,
+            descriptionText: description
+            //	translatable:true
     ]
-    eventProcess(result)   
+    eventProcess(result)
 }
 
-void fireUpdate_small(name,value)
-{
+void fireUpdate_small(name, value) {
     result = [
-        name: name,
-        value: value
+            name : name,
+            value: value
     ]
-    eventProcess(result)   
+    eventProcess(result)
 }
 
-def getAttribute(name)
-{
+def getAttribute(name) {
     return device.currentValue(name).toString()
 }
 
 void eventProcess(Map evt) {
-    if (getAttribute(evt.name).toString() != evt.value.toString() ) 
-    {
-        evt.isStateChange=true
+    if (getAttribute(evt.name).toString() != evt.value.toString()) {
+        evt.isStateChange = true
         sendEvent(evt)
 
-        if (logEnable) log.info device.getName()+" "+evt.descriptionText
-        if (logDebug) log.debug "result : "+evt
+        if (logEnable) log.info device.getName() + " " + evt.descriptionText
+        if (logDebug) log.debug "result : " + evt
     }
 }
