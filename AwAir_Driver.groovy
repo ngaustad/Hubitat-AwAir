@@ -141,9 +141,9 @@ def ReceiveData(response, data) {
             fireUpdate("dew_point", dewpoint, "°${location.temperatureScale}", "Dew Point is ${dewpoint}°${location.temperatureScale}")
 
             if (enableAlerts_combined) {
-                if (Json.score > 79 && Json.co2 < 600 && Json.pm25 < 15 && Json.pm10_est < 55 && Json.voc < 333) {
+                if (Json.co2 < 601 && Json.voc < 301 && Json.pm25 < 13 && Json.pm10_est < 51) {
                     fireUpdate_small("alert_com", "good")
-                } else if (Json.score > 59 && Json.co2 < 2500 && Json.pm25 < 75 && Json.pm10_est < 155 && Json.voc < 8332) {
+                } else if (Json.co2 < 1001 && Json.voc < 501 && Json.pm25 < 36 && Json.pm10_est < 155) {
                     fireUpdate_small("alert_com", "fair")
                 } else {
                     fireUpdate_small("alert_com", "poor")
